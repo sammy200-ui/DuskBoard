@@ -1,37 +1,42 @@
+# Nexus Use Case Diagram
+
 ```mermaid
-usecaseDiagram
-    actor Admin
-    actor ProjectManager as PM
-    actor Developer
-    actor QA
-    actor Viewer
+flowchart LR
+    %% Actors
+    Admin["👤 Admin"]
+    PM["👤 Project Manager"]
+    Developer["👤 Developer"]
+    QA["👤 QA Engineer"]
+    Viewer["👤 Viewer"]
 
-    package Authentication {
-        usecase "Login" as UC1
-        usecase "Logout" as UC2
-        usecase "Register" as UC0
-    }
+    %% Use Case Packages
+    subgraph Authentication
+        UC0(["Register"])
+        UC1(["Login"])
+        UC2(["Logout"])
+    end
 
-    package Project_Management {
-        usecase "Create Project" as UC3
-        usecase "Manage Users" as UC4
-        usecase "View Reports" as UC5
-    }
+    subgraph Project_Management
+        UC3(["Create Project"])
+        UC4(["Manage Users"])
+        UC5(["View Reports"])
+    end
 
-    package Sprint_Management {
-        usecase "Create Sprint" as UC6
-        usecase "Start/End Sprint" as UC7
-        usecase "Move Tasks to Sprint" as UC8
-    }
+    subgraph Sprint_Management
+        UC6(["Create Sprint"])
+        UC7(["Start/End Sprint"])
+        UC8(["Move Tasks to Sprint"])
+    end
 
-    package Task_Management {
-        usecase "Create Task" as UC9
-        usecase "Edit Task" as UC10
-        usecase "Change Task Status" as UC11
-        usecase "Comment on Task" as UC12
-        usecase "View Task" as UC13
-    }
+    subgraph Task_Management
+        UC9(["Create Task"])
+        UC10(["Edit Task"])
+        UC11(["Change Task Status"])
+        UC12(["Comment on Task"])
+        UC13(["View Task"])
+    end
 
+    %% Relationships
     Admin --> UC0
     Admin --> UC1
     Admin --> UC3
@@ -60,5 +65,6 @@ usecaseDiagram
     Viewer --> UC1
     Viewer --> UC13
 
-
+    %% Styling for Use Case shape
+    classDef usecase fill:#fff,stroke:#333,stroke-width:2px,rx:10,ry:10;
 ```
