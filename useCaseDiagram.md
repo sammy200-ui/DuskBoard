@@ -1,5 +1,3 @@
-
-
 ```mermaid
 useCaseDiagram
     actor Admin
@@ -62,8 +60,5 @@ useCaseDiagram
     Viewer --> UC1
     Viewer --> UC13
 
-    note right of UC11
-        Status changes are restricted
-        by the State Engine based on Role
-    end note
+
 ```
