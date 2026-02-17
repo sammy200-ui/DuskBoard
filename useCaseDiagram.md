@@ -1,5 +1,5 @@
 ```mermaid
-useCaseDiagram
+usecaseDiagram
     actor Admin
     actor ProjectManager as PM
     actor Developer
