@@ -1,7 +1,9 @@
 import dotenv from 'dotenv';
 import cors from 'cors';
 import express from 'express';
+import errorHandler from './middlewares/errorHandler';
 import requestLogger from './middlewares/requestLogger';
+import { NotFoundError } from './shared/errors';
 
 dotenv.config();
 
@@ -15,6 +17,12 @@ app.use(express.json());
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
+
+app.use((_req, _res, next) => {
+  next(new NotFoundError('Route'));
+});
+
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`backend running on port ${port}`);
