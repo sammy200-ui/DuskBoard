@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import cors from 'cors';
 import express from 'express';
+import { auditObserver } from './core/audit';
 import errorHandler from './middlewares/errorHandler';
 import requestLogger from './middlewares/requestLogger';
 import authRoutes from './modules/auth/auth.routes';
@@ -10,6 +11,8 @@ dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
+
+auditObserver.start();
 
 app.use(requestLogger);
 app.use(cors());
