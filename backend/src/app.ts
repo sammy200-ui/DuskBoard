@@ -6,6 +6,7 @@ import errorHandler from './middlewares/errorHandler';
 import requestLogger from './middlewares/requestLogger';
 import authRoutes from './modules/auth/auth.routes';
 import projectRoutes from './modules/projects/project.routes';
+import taskRoutes from './modules/tasks/task.routes';
 import userRoutes from './modules/users/user.routes';
 import { NotFoundError } from './shared/errors';
 
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/projects/:projectId/tasks', taskRoutes);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
