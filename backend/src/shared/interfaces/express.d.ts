@@ -5,7 +5,7 @@ declare global {
     interface Request {
       auth?: {
         userId: string;
-        projectRole: ProjectRole;
+        projectRole?: ProjectRole;
       };
     }
   }

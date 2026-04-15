@@ -5,6 +5,7 @@ import { auditObserver } from './core/audit';
 import errorHandler from './middlewares/errorHandler';
 import requestLogger from './middlewares/requestLogger';
 import authRoutes from './modules/auth/auth.routes';
+import userRoutes from './modules/users/user.routes';
 import { NotFoundError } from './shared/errors';
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use(requestLogger);
 app.use(cors());
 app.use(express.json());
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
