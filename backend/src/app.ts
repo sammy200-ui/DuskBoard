@@ -5,6 +5,7 @@ import { auditObserver } from './core/audit';
 import errorHandler from './middlewares/errorHandler';
 import requestLogger from './middlewares/requestLogger';
 import authRoutes from './modules/auth/auth.routes';
+import projectRoutes from './modules/projects/project.routes';
 import userRoutes from './modules/users/user.routes';
 import { NotFoundError } from './shared/errors';
 
@@ -20,6 +21,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/projects', projectRoutes);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
