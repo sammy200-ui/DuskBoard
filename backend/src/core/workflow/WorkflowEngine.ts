@@ -1,4 +1,4 @@
-import { ProjectRole, TaskStatus } from '@prisma/client';
+import { ProjectRole, TaskStatus } from '../../shared/domain/enums';
 
 type TransitionRule = {
   from: TaskStatus;

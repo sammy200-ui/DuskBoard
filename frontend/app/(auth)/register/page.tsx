@@ -19,14 +19,24 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const redirectToHome = () => {
+    router.replace("/");
+
+    // Fallback for occasional dev-router chunk sync issues.
+    window.setTimeout(() => {
+      if (window.location.pathname !== "/") {
+        window.location.assign("/");
+      }
+    }, 150);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     try {
       await register({ name, email, password });
       toast.success("Account created");
-      router.push("/");
-      router.refresh();
+      redirectToHome();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to register";
       toast.error(message);

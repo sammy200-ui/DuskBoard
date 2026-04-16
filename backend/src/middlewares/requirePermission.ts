@@ -1,8 +1,8 @@
 import { JwtPayload } from 'jsonwebtoken';
 import jwt from 'jsonwebtoken';
 import { NextFunction, Request, Response } from 'express';
-import prisma from '../config/prisma';
 import permissionChecker, { Permission } from '../core/rbac/PermissionChecker';
+import { ProjectMemberModel } from '../models';
 import { AppError, UnauthorizedError } from '../shared/errors';
 
 type AccessTokenPayload = JwtPayload & {
@@ -77,17 +77,12 @@ const requirePermission = (permission: Permission) => {
         throw new AppError('Project context is required', 400);
       }
 
-      const membership = await prisma.projectMember.findUnique({
-        where: {
-          userId_projectId: {
-            userId: decoded.sub,
-            projectId,
-          },
-        },
-        select: {
-          role: true,
-        },
-      });
+      const membership = await ProjectMemberModel.findOne({
+        userId: decoded.sub,
+        projectId,
+      })
+        .select({ role: 1 })
+        .lean();
 
       if (!membership) {
         throw new AppError('You are not a member of this project', 403);

@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import cors from 'cors';
 import express from 'express';
+import { connectDatabase } from './config/database';
 import { auditObserver } from './core/audit';
 import errorHandler from './middlewares/errorHandler';
 import requestLogger from './middlewares/requestLogger';
@@ -37,8 +38,18 @@ app.use((_req, _res, next) => {
 
 app.use(errorHandler);
 
-app.listen(port, () => {
-  console.log(`backend running on port ${port}`);
-});
+const bootstrap = async (): Promise<void> => {
+  try {
+    await connectDatabase();
+    app.listen(port, () => {
+      console.log(`backend running on port ${port}`);
+    });
+  } catch (error) {
+    console.error('Failed to start backend', error);
+    process.exit(1);
+  }
+};
+
+void bootstrap();
 
 export default app;

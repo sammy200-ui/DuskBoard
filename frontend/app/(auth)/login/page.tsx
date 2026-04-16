@@ -18,14 +18,24 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const redirectToHome = () => {
+    router.replace("/");
+
+    // Fallback for occasional dev-router chunk sync issues.
+    window.setTimeout(() => {
+      if (window.location.pathname !== "/") {
+        window.location.assign("/");
+      }
+    }, 150);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     try {
       await login({ email, password });
       toast.success("Welcome back");
-      router.push("/");
-      router.refresh();
+      redirectToHome();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to login";
       toast.error(message);

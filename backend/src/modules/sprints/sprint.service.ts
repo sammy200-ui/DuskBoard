@@ -1,4 +1,4 @@
-import { Priority, SprintStatus, TaskStatus, TaskType } from '@prisma/client';
+import { Priority, SprintStatus, TaskStatus, TaskType } from '../../shared/domain/enums';
 import { z } from 'zod';
 import { emitTaskSprintMoved } from '../../core/audit';
 import { AppError, NotFoundError } from '../../shared/errors';
@@ -54,13 +54,11 @@ class SprintService {
     }
 
     const sprint = await sprintRepository.createSprint({
+      projectId,
       name: payload.name,
       goal: payload.goal,
       startDate: payload.startDate,
       endDate: payload.endDate,
-      project: {
-        connect: { id: projectId },
-      },
     });
 
     return this.toView(sprint);
@@ -140,16 +138,8 @@ class SprintService {
     const rolloverTasks = await sprintRepository.listRolloverTasks(projectId, sprint.id);
 
     for (const task of rolloverTasks) {
-      const sprintUpdate = destinationSprintId
-        ? {
-            connect: { id: destinationSprintId },
-          }
-        : {
-            disconnect: true,
-          };
-
       await sprintRepository.updateTaskById(task.id, {
-        sprint: sprintUpdate,
+        sprintId: destinationSprintId,
       });
 
       emitTaskSprintMoved({
@@ -205,9 +195,7 @@ class SprintService {
     }
 
     const updated = await sprintRepository.updateTaskById(task.id, {
-      sprint: {
-        connect: { id: sprint.id },
-      },
+      sprintId: sprint.id,
     });
 
     emitTaskSprintMoved({
@@ -246,9 +234,7 @@ class SprintService {
     }
 
     const updated = await sprintRepository.updateTaskById(task.id, {
-      sprint: {
-        disconnect: true,
-      },
+      sprintId: null,
     });
 
     emitTaskSprintMoved({

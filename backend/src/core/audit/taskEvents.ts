@@ -1,5 +1,4 @@
 import { EventEmitter } from 'node:events';
-import { Prisma } from '@prisma/client';
 
 const taskEvents = {
   statusChanged: 'task:statusChanged',
@@ -7,7 +6,7 @@ const taskEvents = {
   sprintMoved: 'task:sprintMoved',
 } as const;
 
-type TaskEventMetadata = Prisma.InputJsonValue;
+type TaskEventMetadata = unknown;
 
 type BaseTaskEvent = {
   taskId: string;

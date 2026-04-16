@@ -1,4 +1,4 @@
-import { Prisma, ProjectRole } from '@prisma/client';
+import { ProjectRole } from '../../shared/domain/enums';
 import { z } from 'zod';
 import { AppError, NotFoundError } from '../../shared/errors';
 import projectRepository from './project.repository';
@@ -83,15 +83,12 @@ class ProjectService {
       throw new NotFoundError('Project');
     }
 
-    try {
-      await projectRepository.deleteProjectById(projectId);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
-        throw new AppError('Project has related records and cannot be deleted yet', 409);
-      }
-
-      throw error;
+    const hasRelatedRecords = await projectRepository.hasRelatedRecords(projectId);
+    if (hasRelatedRecords) {
+      throw new AppError('Project has related records and cannot be deleted yet', 409);
     }
+
+    await projectRepository.deleteProjectById(projectId);
   }
 
   async listProjectMembers(userId: string, projectId: string): Promise<ProjectMemberView[]> {

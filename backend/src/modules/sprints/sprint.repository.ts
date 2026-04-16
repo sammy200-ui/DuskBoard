@@ -1,107 +1,162 @@
-import { Prisma, ProjectMember, Sprint, Task } from '@prisma/client';
-import prisma from '../../config/prisma';
+import { ProjectMemberModel, SprintModel, TaskModel, toProjectMemberEntity, toSprintEntity, toTaskEntity } from '../../models';
+import { ProjectMemberEntity, SprintEntity, TaskEntity } from '../../shared/domain/entities';
+import { SprintStatus, TaskStatus } from '../../shared/domain/enums';
+
+type CreateSprintData = {
+  projectId: string;
+  name: string;
+  goal?: string;
+  startDate?: Date;
+  endDate?: Date;
+};
+
+type UpdateSprintData = {
+  name?: string;
+  goal?: string;
+  startDate?: Date;
+  endDate?: Date;
+  status?: SprintStatus;
+};
+
+type UpdateTaskData = {
+  sprintId?: string | null;
+};
 
 class SprintRepository {
-  async findMembership(userId: string, projectId: string): Promise<ProjectMember | null> {
-    return prisma.projectMember.findUnique({
-      where: {
-        userId_projectId: {
-          userId,
-          projectId,
-        },
+  async findMembership(userId: string, projectId: string): Promise<ProjectMemberEntity | null> {
+    const membership = await ProjectMemberModel.findOne({ userId, projectId }).lean();
+    return membership ? toProjectMemberEntity(membership) : null;
+  }
+
+  async listByProject(projectId: string): Promise<SprintEntity[]> {
+    const sprints = await SprintModel.find({ projectId }).sort({ startDate: 1, name: 1 }).lean();
+    return sprints.map((sprint) => toSprintEntity(sprint));
+  }
+
+  async createSprint(data: CreateSprintData): Promise<SprintEntity> {
+    const sprint = await SprintModel.create({
+      projectId: data.projectId,
+      name: data.name,
+      goal: data.goal ?? null,
+      startDate: data.startDate ?? null,
+      endDate: data.endDate ?? null,
+    });
+
+    return toSprintEntity(sprint.toObject());
+  }
+
+  async findByIdAndProject(sprintId: string, projectId: string): Promise<SprintEntity | null> {
+    const sprint = await SprintModel.findOne({ _id: sprintId, projectId }).lean();
+    return sprint ? toSprintEntity(sprint) : null;
+  }
+
+  async updateSprintById(sprintId: string, data: UpdateSprintData): Promise<SprintEntity> {
+    const updatePayload: {
+      name?: string;
+      goal?: string | null;
+      startDate?: Date | null;
+      endDate?: Date | null;
+      status?: SprintStatus;
+    } = {};
+
+    if (data.name !== undefined) {
+      updatePayload.name = data.name;
+    }
+
+    if (data.goal !== undefined) {
+      updatePayload.goal = data.goal;
+    }
+
+    if (data.startDate !== undefined) {
+      updatePayload.startDate = data.startDate;
+    }
+
+    if (data.endDate !== undefined) {
+      updatePayload.endDate = data.endDate;
+    }
+
+    if (data.status !== undefined) {
+      updatePayload.status = data.status;
+    }
+
+    const sprint = await SprintModel.findByIdAndUpdate(sprintId, updatePayload, {
+      new: true,
+    }).lean();
+
+    if (!sprint) {
+      throw new Error('Sprint not found during update');
+    }
+
+    return toSprintEntity(sprint);
+  }
+
+  async findFirstActiveSprint(projectId: string, excludingSprintId: string): Promise<SprintEntity | null> {
+    const sprint = await SprintModel.findOne({
+      projectId,
+      status: SprintStatus.ACTIVE,
+      _id: { $ne: excludingSprintId },
+    })
+      .sort({ startDate: 1, name: 1 })
+      .lean();
+
+    return sprint ? toSprintEntity(sprint) : null;
+  }
+
+  async findFirstPlannedSprint(projectId: string, excludingSprintId: string): Promise<SprintEntity | null> {
+    const sprint = await SprintModel.findOne({
+      projectId,
+      status: SprintStatus.PLANNED,
+      _id: { $ne: excludingSprintId },
+    })
+      .sort({ startDate: 1, name: 1 })
+      .lean();
+
+    return sprint ? toSprintEntity(sprint) : null;
+  }
+
+  async listRolloverTasks(projectId: string, sprintId: string): Promise<TaskEntity[]> {
+    const tasks = await TaskModel.find({
+      projectId,
+      sprintId,
+      status: {
+        $nin: [TaskStatus.DONE, TaskStatus.BLOCKED],
       },
-    });
+    }).lean();
+
+    return tasks.map((task) => toTaskEntity(task));
   }
 
-  async listByProject(projectId: string): Promise<Sprint[]> {
-    return prisma.sprint.findMany({
-      where: { projectId },
-      orderBy: [{ startDate: 'asc' }, { name: 'asc' }],
-    });
+  async listTasksForSprint(projectId: string, sprintId: string): Promise<TaskEntity[]> {
+    const tasks = await TaskModel.find({ projectId, sprintId }).sort({ createdAt: -1 }).lean();
+    return tasks.map((task) => toTaskEntity(task));
   }
 
-  async createSprint(data: Prisma.SprintCreateInput): Promise<Sprint> {
-    return prisma.sprint.create({
-      data,
-    });
+  async findTaskByIdAndProject(taskId: string, projectId: string): Promise<TaskEntity | null> {
+    const task = await TaskModel.findOne({ _id: taskId, projectId }).lean();
+    return task ? toTaskEntity(task) : null;
   }
 
-  async findByIdAndProject(sprintId: string, projectId: string): Promise<Sprint | null> {
-    return prisma.sprint.findFirst({
-      where: {
-        id: sprintId,
-        projectId,
-      },
-    });
-  }
+  async updateTaskById(taskId: string, data: UpdateTaskData): Promise<TaskEntity> {
+    const updatePayload: {
+      sprintId?: string | null;
+      updatedAt: Date;
+    } = {
+      updatedAt: new Date(),
+    };
 
-  async updateSprintById(sprintId: string, data: Prisma.SprintUpdateInput): Promise<Sprint> {
-    return prisma.sprint.update({
-      where: { id: sprintId },
-      data,
-    });
-  }
+    if (data.sprintId !== undefined) {
+      updatePayload.sprintId = data.sprintId;
+    }
 
-  async findFirstActiveSprint(projectId: string, excludingSprintId: string): Promise<Sprint | null> {
-    return prisma.sprint.findFirst({
-      where: {
-        projectId,
-        status: 'ACTIVE',
-        id: { not: excludingSprintId },
-      },
-      orderBy: [{ startDate: 'asc' }, { name: 'asc' }],
-    });
-  }
+    const task = await TaskModel.findByIdAndUpdate(taskId, updatePayload, {
+      new: true,
+    }).lean();
 
-  async findFirstPlannedSprint(projectId: string, excludingSprintId: string): Promise<Sprint | null> {
-    return prisma.sprint.findFirst({
-      where: {
-        projectId,
-        status: 'PLANNED',
-        id: { not: excludingSprintId },
-      },
-      orderBy: [{ startDate: 'asc' }, { name: 'asc' }],
-    });
-  }
+    if (!task) {
+      throw new Error('Task not found during update');
+    }
 
-  async listRolloverTasks(projectId: string, sprintId: string): Promise<Task[]> {
-    return prisma.task.findMany({
-      where: {
-        projectId,
-        sprintId,
-        status: {
-          notIn: ['DONE', 'BLOCKED'],
-        },
-      },
-    });
-  }
-
-  async listTasksForSprint(projectId: string, sprintId: string): Promise<Task[]> {
-    return prisma.task.findMany({
-      where: {
-        projectId,
-        sprintId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-  }
-
-  async findTaskByIdAndProject(taskId: string, projectId: string): Promise<Task | null> {
-    return prisma.task.findFirst({
-      where: {
-        id: taskId,
-        projectId,
-      },
-    });
-  }
-
-  async updateTaskById(taskId: string, data: Prisma.TaskUpdateInput): Promise<Task> {
-    return prisma.task.update({
-      where: { id: taskId },
-      data,
-    });
+    return toTaskEntity(task);
   }
 }
 

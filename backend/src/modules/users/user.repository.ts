@@ -1,24 +1,38 @@
-import { Prisma, User } from '@prisma/client';
-import prisma from '../../config/prisma';
+import { UserModel, toUserEntity } from '../../models';
+import { UserEntity } from '../../shared/domain/entities';
 
 class UserRepository {
-  async findById(userId: string): Promise<User | null> {
-    return prisma.user.findUnique({
-      where: { id: userId },
-    });
+  async findById(userId: string): Promise<UserEntity | null> {
+    const user = await UserModel.findById(userId).lean();
+    return user ? toUserEntity(user) : null;
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return prisma.user.findUnique({
-      where: { email },
-    });
+  async findByEmail(email: string): Promise<UserEntity | null> {
+    const user = await UserModel.findOne({ email: email.toLowerCase() }).lean();
+    return user ? toUserEntity(user) : null;
   }
 
-  async updateById(userId: string, data: Prisma.UserUpdateInput): Promise<User> {
-    return prisma.user.update({
-      where: { id: userId },
-      data,
-    });
+  async updateById(
+    userId: string,
+    data: {
+      name?: string;
+      email?: string;
+    },
+  ): Promise<UserEntity> {
+    const updated = await UserModel.findByIdAndUpdate(
+      userId,
+      {
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.email !== undefined ? { email: data.email.toLowerCase() } : {}),
+      },
+      { new: true },
+    ).lean();
+
+    if (!updated) {
+      throw new Error('User not found during update');
+    }
+
+    return toUserEntity(updated);
   }
 }
 

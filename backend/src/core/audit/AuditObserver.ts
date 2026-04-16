@@ -1,5 +1,4 @@
-import { Prisma } from '@prisma/client';
-import prisma from '../../config/prisma';
+import { AuditLogModel } from '../../models';
 import {
   TaskAssignedEvent,
   TaskSprintMovedEvent,
@@ -14,7 +13,7 @@ type AuditWriteInput = {
   action: string;
   fromValue?: string | null;
   toValue?: string | null;
-  metadata?: Prisma.InputJsonValue;
+  metadata?: unknown;
 };
 
 class AuditObserver {
@@ -63,15 +62,13 @@ class AuditObserver {
 
   private async writeAuditLog(input: AuditWriteInput): Promise<void> {
     try {
-      await prisma.auditLog.create({
-        data: {
-          taskId: input.taskId,
-          userId: input.userId,
-          action: input.action,
-          fromValue: input.fromValue ?? null,
-          toValue: input.toValue ?? null,
-          metadata: input.metadata,
-        },
+      await AuditLogModel.create({
+        taskId: input.taskId,
+        userId: input.userId,
+        action: input.action,
+        fromValue: input.fromValue ?? null,
+        toValue: input.toValue ?? null,
+        metadata: input.metadata ?? null,
       });
     } catch (error) {
       console.error('Failed to write audit log', error);

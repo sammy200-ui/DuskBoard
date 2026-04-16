@@ -1,4 +1,4 @@
-import { Priority, TaskStatus, TaskType } from '@prisma/client';
+import { Priority, TaskStatus, TaskType } from '../../shared/domain/enums';
 
 export type CreateTaskInput = {
   title: string;

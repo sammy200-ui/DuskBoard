@@ -1,4 +1,4 @@
-import { ProjectRole } from '@prisma/client';
+import { ProjectRole } from '../../shared/domain/enums';
 
 type Permission =
   | 'task:create'

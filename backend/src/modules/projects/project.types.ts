@@ -1,4 +1,4 @@
-import { ProjectRole } from '@prisma/client';
+import { ProjectRole } from '../../shared/domain/enums';
 
 export type CreateProjectInput = {
   name: string;

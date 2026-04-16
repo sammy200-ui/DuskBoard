@@ -1,4 +1,4 @@
-import { Priority, ProjectRole, TaskStatus, TaskType } from '@prisma/client';
+import { Priority, ProjectRole, TaskStatus, TaskType } from '../../shared/domain/enums';
 import { z } from 'zod';
 import { emitTaskAssigned, emitTaskStatusChanged } from '../../core/audit';
 import workflowEngine from '../../core/workflow/WorkflowEngine';
@@ -68,23 +68,13 @@ class TaskService {
     }
 
     const task = await taskRepository.createTask({
+      projectId,
       title: payload.title,
       description: payload.description,
       type: payload.type,
       priority: payload.priority,
-      project: {
-        connect: { id: projectId },
-      },
-      assignee: payload.assigneeId
-        ? {
-            connect: { id: payload.assigneeId },
-          }
-        : undefined,
-      sprint: payload.sprintId
-        ? {
-            connect: { id: payload.sprintId },
-          }
-        : undefined,
+      assigneeId: payload.assigneeId,
+      sprintId: payload.sprintId,
     });
 
     return this.toView(task);
@@ -135,19 +125,12 @@ class TaskService {
       throw new NotFoundError('Task');
     }
 
-    const sprintUpdate =
-      payload.sprintId === undefined
-        ? undefined
-        : payload.sprintId === null
-          ? { disconnect: true }
-          : { connect: { id: payload.sprintId } };
-
     const updated = await taskRepository.updateTaskById(task.id, {
       title: payload.title,
       description: payload.description,
       type: payload.type,
       priority: payload.priority,
-      sprint: sprintUpdate,
+      sprintId: payload.sprintId,
     });
 
     return this.toView(updated);
@@ -230,15 +213,8 @@ class TaskService {
       await this.ensureAssignableMember(payload.assigneeId, projectId);
     }
 
-    const assigneeUpdate =
-      payload.assigneeId === null
-        ? { disconnect: true }
-        : {
-            connect: { id: payload.assigneeId },
-          };
-
     const updated = await taskRepository.updateTaskById(task.id, {
-      assignee: assigneeUpdate,
+      assigneeId: payload.assigneeId,
     });
 
     emitTaskAssigned({

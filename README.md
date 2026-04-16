@@ -18,9 +18,9 @@ We have created detailed documentation and Mermaid diagrams to outline the proje
 
 ## Tech Stack
 
-- **Backend:** Node.js / TypeScript (OOP & Design Patterns)
-- **Database:** PostgreSQL
-- **Frontend:** React.js
+- **Backend:** Node.js / TypeScript / Express / Mongoose
+- **Database:** MongoDB
+- **Frontend:** Next.js / React
 
 ## Features
 
