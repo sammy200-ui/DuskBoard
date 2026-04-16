@@ -57,6 +57,22 @@ class TaskController {
     }
   };
 
+  getTaskAuditLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.auth?.userId;
+      if (!userId) {
+        throw new UnauthorizedError();
+      }
+
+      const projectId = readParam(req.params.projectId, 'projectId');
+      const taskId = readParam(req.params.id, 'id');
+      const logs = await taskService.getTaskAuditLogs(userId, projectId, taskId);
+      res.status(200).json(logs);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateTask = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.auth?.userId;

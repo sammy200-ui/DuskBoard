@@ -7,6 +7,7 @@ import taskRepository from './task.repository';
 import {
   AssignTaskInput,
   CreateTaskInput,
+  TaskAuditLogView,
   TaskView,
   UpdateTaskInput,
   UpdateTaskStatusInput,
@@ -97,6 +98,32 @@ class TaskService {
     }
 
     return this.toView(task);
+  }
+
+  async getTaskAuditLogs(userId: string, projectId: string, taskId: string): Promise<TaskAuditLogView[]> {
+    await this.ensureMembership(userId, projectId);
+
+    const task = await taskRepository.findTaskByIdAndProject(taskId, projectId);
+    if (!task) {
+      throw new NotFoundError('Task');
+    }
+
+    const logs = await taskRepository.listAuditLogsByTask(task.id);
+    return logs.map((log) => ({
+      id: log.id,
+      taskId: log.taskId,
+      userId: log.userId,
+      action: log.action,
+      fromValue: log.fromValue,
+      toValue: log.toValue,
+      metadata: log.metadata,
+      createdAt: log.createdAt,
+      actor: {
+        id: log.user.id,
+        name: log.user.name,
+        email: log.user.email,
+      },
+    }));
   }
 
   async updateTask(userId: string, projectId: string, taskId: string, input: UpdateTaskInput): Promise<TaskView> {

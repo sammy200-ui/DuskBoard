@@ -61,6 +61,24 @@ class TaskRepository {
       where: { id: userId },
     });
   }
+
+  async listAuditLogsByTask(taskId: string) {
+    return prisma.auditLog.findMany({
+      where: { taskId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }
 
 const taskRepository = new TaskRepository();

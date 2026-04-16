@@ -38,3 +38,19 @@ export type TaskView = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type TaskAuditLogView = {
+  id: string;
+  taskId: string;
+  userId: string;
+  action: string;
+  fromValue: string | null;
+  toValue: string | null;
+  metadata: unknown;
+  createdAt: Date;
+  actor: {
+    id: string;
+    name: string;
+    email: string;
+  };
+};
