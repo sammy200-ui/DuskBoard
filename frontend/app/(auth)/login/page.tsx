@@ -18,13 +18,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const redirectToHome = () => {
-    router.replace("/");
+  const redirectToDashboard = () => {
+    router.replace("/dashboard");
 
     // Fallback for occasional dev-router chunk sync issues.
     window.setTimeout(() => {
-      if (window.location.pathname !== "/") {
-        window.location.assign("/");
+      if (window.location.pathname !== "/dashboard") {
+        window.location.assign("/dashboard");
       }
     }, 150);
   };
@@ -35,7 +35,7 @@ export default function LoginPage() {
     try {
       await login({ email, password });
       toast.success("Welcome back");
-      redirectToHome();
+      redirectToDashboard();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to login";
       toast.error(message);
