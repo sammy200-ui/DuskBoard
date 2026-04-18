@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import TaskSlideOver, {
+  TaskAuditLog,
+  TaskEditPayload,
+  TaskMemberOption,
+} from "@/components/audit/task-slide-over";
 import KanbanBoard from "@/components/board/kanban-board";
 import { statusLabelMap } from "@/components/board/status-meta";
 import { BoardTask, TaskStatus, TaskTransitionLookup } from "@/components/board/types";
@@ -65,6 +70,14 @@ const toAssigneeLookup = (members: ProjectMemberView[]): Record<string, string> 
   }, {});
 };
 
+const toTaskMembers = (members: ProjectMemberView[]): TaskMemberOption[] => {
+  return members.map((member) => ({
+    userId: member.userId,
+    name: member.name,
+    role: member.role,
+  }));
+};
+
 export default function ProjectKanbanPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -80,9 +93,23 @@ export default function ProjectKanbanPage() {
   const [tasks, setTasks] = useState<BoardTask[]>([]);
   const [transitionLookup, setTransitionLookup] = useState<TaskTransitionLookup>({});
   const [assigneeNames, setAssigneeNames] = useState<Record<string, string>>({});
+  const [members, setMembers] = useState<TaskMemberOption[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [didLoad, setDidLoad] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<TaskAuditLog[]>([]);
+  const [isAuditLoading, setIsAuditLoading] = useState(false);
+  const [isSavingTaskDetails, setIsSavingTaskDetails] = useState(false);
+  const [isSavingTaskAssignee, setIsSavingTaskAssignee] = useState(false);
+
+  const selectedTask = useMemo(() => {
+    if (!selectedTaskId) {
+      return null;
+    }
+
+    return tasks.find((task) => task.id === selectedTaskId) ?? null;
+  }, [tasks, selectedTaskId]);
 
   useEffect(() => {
     if (!isHydrated) {
@@ -98,6 +125,11 @@ export default function ProjectKanbanPage() {
       }, 150);
     }
   }, [isHydrated, accessToken, router]);
+
+  const handleUnauthorized = useCallback(() => {
+    clearSession();
+    router.replace("/login");
+  }, [clearSession, router]);
 
   const refreshTaskTransitions = useCallback(
     async (taskId: string): Promise<void> => {
@@ -123,6 +155,43 @@ export default function ProjectKanbanPage() {
     },
     [projectId],
   );
+
+  const loadTaskAuditLogs = useCallback(
+    async (taskId: string): Promise<void> => {
+      if (!projectId) {
+        return;
+      }
+
+      setIsAuditLoading(true);
+      try {
+        const { data } = await api.get<TaskAuditLog[]>(`/projects/${projectId}/tasks/${taskId}/audit`);
+        setAuditLogs(data);
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        toast.error(toMessage(error, "Unable to load task activity"));
+      } finally {
+        setIsAuditLoading(false);
+      }
+    },
+    [projectId, handleUnauthorized],
+  );
+
+  const handleOpenTaskDrawer = useCallback(
+    (taskId: string) => {
+      setSelectedTaskId(taskId);
+      void loadTaskAuditLogs(taskId);
+    },
+    [loadTaskAuditLogs],
+  );
+
+  const handleCloseTaskDrawer = useCallback(() => {
+    setSelectedTaskId(null);
+    setAuditLogs([]);
+  }, []);
 
   const loadBoardData = useCallback(async (): Promise<void> => {
     if (!projectId) {
@@ -170,6 +239,7 @@ export default function ProjectKanbanPage() {
       setProject(projectResponse.data);
       setTasks(tasksResponse.data);
       setAssigneeNames(toAssigneeLookup(membersResponse.data));
+      setMembers(toTaskMembers(membersResponse.data));
       setTransitionLookup(transitionMap);
       setDidLoad(true);
 
@@ -178,8 +248,7 @@ export default function ProjectKanbanPage() {
       }
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 401) {
-        clearSession();
-        router.replace("/login");
+        handleUnauthorized();
         return;
       }
 
@@ -192,7 +261,7 @@ export default function ProjectKanbanPage() {
     } finally {
       setIsFetching(false);
     }
-  }, [projectId, clearSession, router]);
+  }, [projectId, handleUnauthorized, router]);
 
   useEffect(() => {
     if (!isHydrated || !accessToken || !projectId) {
@@ -201,6 +270,79 @@ export default function ProjectKanbanPage() {
 
     void loadBoardData();
   }, [isHydrated, accessToken, projectId, loadBoardData]);
+
+  useEffect(() => {
+    if (!selectedTaskId) {
+      return;
+    }
+
+    const selectedStillExists = tasks.some((task) => task.id === selectedTaskId);
+    if (!selectedStillExists) {
+      setSelectedTaskId(null);
+      setAuditLogs([]);
+    }
+  }, [tasks, selectedTaskId]);
+
+  const handleSaveTaskDetails = useCallback(
+    async (taskId: string, payload: TaskEditPayload): Promise<void> => {
+      if (!projectId) {
+        return;
+      }
+
+      setIsSavingTaskDetails(true);
+      try {
+        const { data } = await api.put<BoardTask>(`/projects/${projectId}/tasks/${taskId}`, {
+          title: payload.title,
+          description: payload.description,
+          type: payload.type,
+          priority: payload.priority,
+        });
+
+        setTasks((current) => current.map((task) => (task.id === taskId ? data : task)));
+        toast.success("Task details updated");
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        toast.error(toMessage(error, "Unable to update task details"));
+      } finally {
+        setIsSavingTaskDetails(false);
+      }
+    },
+    [projectId, handleUnauthorized],
+  );
+
+  const handleSaveTaskAssignee = useCallback(
+    async (taskId: string, assigneeId: string | null): Promise<void> => {
+      if (!projectId) {
+        return;
+      }
+
+      setIsSavingTaskAssignee(true);
+      try {
+        const { data } = await api.put<BoardTask>(`/projects/${projectId}/tasks/${taskId}/assign`, {
+          assigneeId,
+        });
+
+        setTasks((current) => current.map((task) => (task.id === taskId ? data : task)));
+        await refreshTaskTransitions(taskId);
+        await loadTaskAuditLogs(taskId);
+        toast.success(assigneeId ? "Assignee updated" : "Task moved to unassigned");
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        toast.error(toMessage(error, "Unable to update assignee"));
+      } finally {
+        setIsSavingTaskAssignee(false);
+      }
+    },
+    [projectId, handleUnauthorized, loadTaskAuditLogs, refreshTaskTransitions],
+  );
 
   const handleMoveTask = useCallback(
     async (taskId: string, toStatus: TaskStatus): Promise<void> => {
@@ -223,6 +365,9 @@ export default function ProjectKanbanPage() {
 
         setTasks((current) => current.map((task) => (task.id === taskId ? data : task)));
         await refreshTaskTransitions(taskId);
+        if (selectedTaskId === taskId) {
+          await loadTaskAuditLogs(taskId);
+        }
         toast.success(`Moved to ${statusLabelMap[toStatus]}`);
       } catch (error) {
         setTasks((current) =>
@@ -239,8 +384,7 @@ export default function ProjectKanbanPage() {
         await refreshTaskTransitions(taskId);
 
         if (error instanceof AxiosError && error.response?.status === 401) {
-          clearSession();
-          router.replace("/login");
+          handleUnauthorized();
           return;
         }
 
@@ -249,7 +393,7 @@ export default function ProjectKanbanPage() {
         setUpdatingTaskId(null);
       }
     },
-    [tasks, projectId, clearSession, refreshTaskTransitions, router],
+    [tasks, projectId, refreshTaskTransitions, selectedTaskId, loadTaskAuditLogs, handleUnauthorized],
   );
 
   const greeting = useMemo(() => {
@@ -326,11 +470,28 @@ export default function ProjectKanbanPage() {
               transitionLookup={transitionLookup}
               assigneeNames={assigneeNames}
               updatingTaskId={updatingTaskId}
+              selectedTaskId={selectedTaskId}
               onMoveTask={handleMoveTask}
+              onOpenTask={handleOpenTaskDrawer}
             />
           </section>
         )}
       </div>
+
+      <TaskSlideOver
+        key={selectedTask?.id ?? "closed"}
+        open={Boolean(selectedTask)}
+        task={selectedTask}
+        members={members}
+        auditLogs={auditLogs}
+        isAuditLoading={isAuditLoading}
+        isSavingDetails={isSavingTaskDetails}
+        isSavingAssignee={isSavingTaskAssignee}
+        onClose={handleCloseTaskDrawer}
+        onSaveDetails={handleSaveTaskDetails}
+        onSaveAssignee={handleSaveTaskAssignee}
+        onRefreshAudit={loadTaskAuditLogs}
+      />
     </div>
   );
 }

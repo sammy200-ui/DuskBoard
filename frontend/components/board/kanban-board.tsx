@@ -22,7 +22,9 @@ type KanbanBoardProps = {
   transitionLookup: TaskTransitionLookup;
   assigneeNames: Record<string, string>;
   updatingTaskId: string | null;
+  selectedTaskId: string | null;
   onMoveTask: (taskId: string, toStatus: TaskStatus) => Promise<void>;
+  onOpenTask: (taskId: string) => void;
 };
 
 export default function KanbanBoard({
@@ -30,7 +32,9 @@ export default function KanbanBoard({
   transitionLookup,
   assigneeNames,
   updatingTaskId,
+  selectedTaskId,
   onMoveTask,
+  onOpenTask,
 }: KanbanBoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -144,6 +148,8 @@ export default function KanbanBoard({
               assigneeNames={assigneeNames}
               isDropDisabled={!isAllowedStatusForActiveTask(status)}
               isUpdatingTask={Boolean(updatingTaskId)}
+              selectedTaskId={selectedTaskId}
+              onOpenTask={onOpenTask}
             />
           ))}
         </div>

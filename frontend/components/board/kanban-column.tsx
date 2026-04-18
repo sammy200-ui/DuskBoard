@@ -12,6 +12,8 @@ type KanbanColumnProps = {
   assigneeNames: Record<string, string>;
   isDropDisabled: boolean;
   isUpdatingTask: boolean;
+  selectedTaskId: string | null;
+  onOpenTask: (taskId: string) => void;
 };
 
 export default function KanbanColumn({
@@ -20,6 +22,8 @@ export default function KanbanColumn({
   assigneeNames,
   isDropDisabled,
   isUpdatingTask,
+  selectedTaskId,
+  onOpenTask,
 }: KanbanColumnProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: `column:${status}`,
@@ -64,6 +68,8 @@ export default function KanbanColumn({
               task={task}
               assigneeName={task.assigneeId ? assigneeNames[task.assigneeId] : undefined}
               draggable={!isUpdatingTask}
+              isSelected={selectedTaskId === task.id}
+              onOpenTask={onOpenTask}
             />
           ))
         )}

@@ -10,6 +10,8 @@ type TaskCardProps = {
   assigneeName?: string;
   draggable?: boolean;
   isOverlay?: boolean;
+  isSelected?: boolean;
+  onOpenTask?: (taskId: string) => void;
 };
 
 const buildTransformStyle = (transform: {
@@ -32,6 +34,8 @@ export default function TaskCard({
   assigneeName,
   draggable = true,
   isOverlay = false,
+  isSelected = false,
+  onOpenTask,
 }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `task:${task.id}`,
@@ -45,6 +49,14 @@ export default function TaskCard({
   const assignedName = assigneeName?.trim() || null;
   const assigneeLabel = assignedName ?? "Unassigned";
 
+  const handleOpenTask = () => {
+    if (!onOpenTask || isOverlay || isDragging) {
+      return;
+    }
+
+    onOpenTask(task.id);
+  };
+
   return (
     <article
       ref={setNodeRef}
@@ -54,7 +66,9 @@ export default function TaskCard({
         draggable && "touch-none cursor-grab active:cursor-grabbing",
         isDragging && "opacity-40",
         isOverlay && "ring-2 ring-teal-300/60",
+        isSelected && "ring-2 ring-sky-300/70",
       )}
+      onClick={handleOpenTask}
       {...attributes}
       {...listeners}
     >
@@ -97,6 +111,8 @@ export default function TaskCard({
 
         <span className="font-mono text-[10px] text-zinc-500">#{task.id.slice(0, 6)}</span>
       </div>
+
+      {onOpenTask ? <p className="mt-2 text-[11px] text-zinc-400">Click to open details</p> : null}
     </article>
   );
 }
