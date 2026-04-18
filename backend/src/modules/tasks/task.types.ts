@@ -54,3 +54,9 @@ export type TaskAuditLogView = {
     email: string;
   };
 };
+
+export type TaskValidTransitionsView = {
+  taskId: string;
+  currentStatus: TaskStatus;
+  validTransitions: TaskStatus[];
+};

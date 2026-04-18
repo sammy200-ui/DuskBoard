@@ -8,6 +8,7 @@ import {
   AssignTaskInput,
   CreateTaskInput,
   TaskAuditLogView,
+  TaskValidTransitionsView,
   TaskView,
   UpdateTaskInput,
   UpdateTaskStatusInput,
@@ -114,6 +115,40 @@ class TaskService {
         email: log.user.email,
       },
     }));
+  }
+
+  async getTaskValidTransitions(
+    userId: string,
+    projectId: string,
+    taskId: string,
+  ): Promise<TaskValidTransitionsView> {
+    const membership = await this.ensureMembership(userId, projectId);
+
+    const task = await taskRepository.findTaskByIdAndProject(taskId, projectId);
+    if (!task) {
+      throw new NotFoundError('Task');
+    }
+
+    const validTransitions = workflowEngine
+      .getValidTransitions(task.status, membership.role)
+      .filter((status) => {
+        if (
+          task.status === TaskStatus.IN_PROGRESS &&
+          status === TaskStatus.CODE_REVIEW &&
+          membership.role === ProjectRole.DEVELOPER &&
+          task.assigneeId !== userId
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+
+    return {
+      taskId: task.id,
+      currentStatus: task.status,
+      validTransitions,
+    };
   }
 
   async updateTask(userId: string, projectId: string, taskId: string, input: UpdateTaskInput): Promise<TaskView> {

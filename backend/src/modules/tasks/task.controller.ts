@@ -73,6 +73,22 @@ class TaskController {
     }
   };
 
+  getValidTransitions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.auth?.userId;
+      if (!userId) {
+        throw new UnauthorizedError();
+      }
+
+      const projectId = readParam(req.params.projectId, 'projectId');
+      const taskId = readParam(req.params.id, 'id');
+      const transitions = await taskService.getTaskValidTransitions(userId, projectId, taskId);
+      res.status(200).json(transitions);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   updateTask = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.auth?.userId;
