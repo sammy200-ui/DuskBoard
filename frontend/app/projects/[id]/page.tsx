@@ -442,6 +442,12 @@ export default function ProjectKanbanPage() {
               >
                 Dashboard
               </Link>
+              <Link
+                href={`/projects/${projectId}/sprints`}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/20 px-3 text-sm text-zinc-200 transition hover:bg-white/10"
+              >
+                Sprints
+              </Link>
 
               <Button
                 type="button"
