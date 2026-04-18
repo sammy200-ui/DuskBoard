@@ -11,7 +11,8 @@ export type UpdateProjectInput = {
 };
 
 export type AddMemberInput = {
-  userId: string;
+  userId?: string;
+  email?: string;
   role: ProjectRole;
 };
 

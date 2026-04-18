@@ -250,6 +250,11 @@ class ProjectRepository {
     const user = await UserModel.findById(userId).lean();
     return user ? toUserEntity(user) : null;
   }
+
+  async findUserByEmail(email: string): Promise<UserEntity | null> {
+    const user = await UserModel.findOne({ email: email.toLowerCase() }).lean();
+    return user ? toUserEntity(user) : null;
+  }
 }
 
 const projectRepository = new ProjectRepository();

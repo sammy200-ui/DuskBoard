@@ -27,8 +27,12 @@ const updateProjectSchema = z
   });
 
 const addMemberSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().uuid().optional(),
+  email: z.string().trim().email().optional(),
   role: z.nativeEnum(ProjectRole),
+}).refine((payload) => payload.userId !== undefined || payload.email !== undefined, {
+  message: 'Either userId or email is required',
+  path: ['userId'],
 });
 
 const updateMemberRoleSchema = z.object({
@@ -107,17 +111,20 @@ class ProjectService {
     await this.ensureMember(userId, projectId);
     const payload = this.parseOrThrow(addMemberSchema, input);
 
-    const user = await projectRepository.findUserById(payload.userId);
-    if (!user) {
+    const targetUser = payload.userId
+      ? await projectRepository.findUserById(payload.userId)
+      : await projectRepository.findUserByEmail(payload.email!.toLowerCase());
+
+    if (!targetUser) {
       throw new NotFoundError('User');
     }
 
-    const existingMember = await projectRepository.findMembership(payload.userId, projectId);
+    const existingMember = await projectRepository.findMembership(targetUser.id, projectId);
     if (existingMember) {
       throw new AppError('User is already a project member', 409);
     }
 
-    const member = await projectRepository.addMember(projectId, payload.userId, payload.role);
+    const member = await projectRepository.addMember(projectId, targetUser.id, payload.role);
     return {
       userId: member.user.id,
       name: member.user.name,

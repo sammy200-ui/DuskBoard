@@ -310,6 +310,12 @@ export default function DashboardPage() {
                           >
                             Sprints
                           </Link>
+                          <Link
+                            href={`/projects/${project.id}/settings`}
+                            className="inline-flex items-center rounded-md border border-white/20 px-2 py-1 text-[11px] font-medium text-zinc-200 transition hover:bg-white/10"
+                          >
+                            Settings
+                          </Link>
                         </div>
                       </div>
                     </div>
